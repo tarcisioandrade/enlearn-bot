@@ -1,0 +1,28 @@
+# Virtual Environment
+venv/
+ENV/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Local development
+local_settings.py
+db.sqlite3
+media/
+
+# Node (caso tenha arquivos frontend)
+node_modules/
+npm-debug.log 

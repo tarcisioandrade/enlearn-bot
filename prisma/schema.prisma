@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id        Int      @id @unique @default(autoincrement())
+  sessionID String   @unique @default(cuid())
+  creds     String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@map("sessions")
+}
+
+model User {
+  id        String     @id @unique @default(cuid())
+  jid       String     @unique
+  push_name String
+  createdAt DateTime   @default(now())
+  scores    Score[]
+  responses Response[]
+
+  @@map("users")
+}
+
+model Score {
+  id         String   @id @unique @default(cuid())
+  week_start DateTime @default(now())
+  week_end   DateTime
+  score      Int      @default(0)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id    String
+
+  @@index([week_start, week_end])
+  @@index([user_id])
+  @@map("scores")
+}
+
+model Question {
+  id             String       @id @unique @default(cuid())
+  content        String       @db.Text
+  options        Json
+  correct_answer String
+  type           QuestionType
+  active         Boolean      @default(true)
+  difficulty     Difficulty
+  createdAt      DateTime     @default(now())
+  responses      Response[]
+}
+
+model Response {
+  id          String   @id @unique @default(cuid())
+  answer      String
+  is_correct  Boolean
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id     String
+  question    Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  question_id String
+
+  @@index([user_id])
+  @@index([question_id])
+  @@map("responses")
+}
+
+enum QuestionType {
+  TRANSLATION
+  MULTIPLE_CHOICE
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
