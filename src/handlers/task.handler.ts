@@ -1,13 +1,13 @@
 import { BaileysEventMap, WASocket } from "@whiskeysockets/baileys";
 import { env } from "process";
-import { UserHandler } from "./user.handler";
+import { UserService } from "../services/user.service";
 
 export class TaskHandler {
   private taskParticipants: Set<string> = new Set();
   private taskTimeout: NodeJS.Timeout | null = null;
   private duration = 10000;
 
-  constructor(private sock: WASocket, private userHandler: UserHandler) {
+  constructor(private sock: WASocket, private userHandler: UserService) {
     this.initialize();
   }
 
