@@ -6,6 +6,7 @@ import { MessageHandler } from "./handlers/message.handler";
 import { TaskHandler } from "./handlers/task.handler";
 import cron from "node-cron";
 import fs from "fs";
+import { startHttpServer } from "./config/http";
 
 const bootstrap = async () => {
   if (!fs.existsSync("sessions/")) {
@@ -44,3 +45,5 @@ cron.schedule("0 18 * * *", async () => {
   await initMessageEvent();
   console.log("EVENT FINISHED");
 });
+
+startHttpServer();
