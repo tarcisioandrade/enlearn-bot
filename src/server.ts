@@ -5,15 +5,21 @@ import { OpenAIHandler } from "./handlers/open-ai.handler";
 import { MessageHandler } from "./handlers/message.handler";
 import { TaskHandler } from "./handlers/task.handler";
 import cron from "node-cron";
+import fs from "fs";
 
 const bootstrap = async () => {
-  const sock = await startSock();
-  const openAiHandler = new OpenAIHandler();
-  // await taskHandler.init();
+  if (!fs.existsSync("sessions/")) {
+    const sock = await startSock();
+    // const openAiHandler = new OpenAIHandler();
+    // const taskHandler = new TaskHandler(sock);
+    // await taskHandler.init();
 
-  const messageHandler = new MessageHandler(sock, openAiHandler, env.GROUP_TARGET_JID);
-  await messageHandler.init();
+    // const messageHandler = new MessageHandler(sock, openAiHandler, env.GROUP_TARGET_JID);
+    // await messageHandler.init();
+  }
 };
+
+bootstrap();
 
 async function initMessageEvent() {
   const sock = await startSock();
