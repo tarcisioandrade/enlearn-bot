@@ -1,22 +1,22 @@
 {
   "compilerOptions": {
-    "target": "es2017",
-    // Treat files as modules even if it doesn't use import/export
-    "moduleDetection": "force",
-
-    // Ignore module structure
-    "module": "Preserve",
-
-    // Allow JSON modules to be imported
-    "resolveJsonModule": true,
-
-    // Allow JS files to be imported from TS and vice versa
-    "allowJs": true,
-
-    // Use correct ESM import behavior
+    "module": "CommonJS",
     "esModuleInterop": true,
-
-    // Disallow features that require cross-file awareness
-    "isolatedModules": true
-  }
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "noImplicitAny": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    // "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

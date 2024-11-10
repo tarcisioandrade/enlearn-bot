@@ -1,11 +1,11 @@
 {
   "name": "enlearn-bot",
   "module": "server.ts",
-  "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts",
-    "postinstall": "npx prisma generate"
+    "start": "node dist/server.js",
+    "postinstall": "npx prisma generate",
+    "build": "tsc"
   },
   "devDependencies": {
     "@types/node": "latest",
