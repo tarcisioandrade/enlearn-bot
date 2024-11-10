@@ -33,17 +33,29 @@ async function initMessageEvent() {
 }
 
 // Cron job to start the server every day at 10:00 AM
-cron.schedule("0 10 * * *", async () => {
-  console.log("EVENT STARTED");
-  await initMessageEvent();
-  console.log("EVENT FINISHED");
-});
+cron.schedule(
+  "0 10 * * *",
+  async () => {
+    console.log("EVENT STARTED");
+    await initMessageEvent();
+    console.log("EVENT FINISHED");
+  },
+  {
+    timezone: "America/Sao_Paulo",
+  }
+);
 
 // Cron job to start the server every day at 18:00 PM
-cron.schedule("0 19 * * *", async () => {
-  console.log("EVENT STARTED");
-  await initMessageEvent();
-  console.log("EVENT FINISHED");
-});
+cron.schedule(
+  "0 18 * * *",
+  async () => {
+    console.log("EVENT STARTED");
+    await initMessageEvent();
+    console.log("EVENT FINISHED");
+  },
+  {
+    timezone: "America/Sao_Paulo",
+  }
+);
 
 startHttpServer();
