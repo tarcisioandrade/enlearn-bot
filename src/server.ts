@@ -2,7 +2,7 @@ import { startSock } from "./config/start-sock";
 import { env } from "./env";
 import { OpenAIHandler } from "./handlers/open-ai.handler";
 import { MessageHandler } from "./handlers/message.handler";
-import { TaskHandler } from "./handlers/task.handler";
+// import { TaskHandler } from "./handlers/task.handler";
 import cron from "node-cron";
 
 const bootstrap = async () => {
