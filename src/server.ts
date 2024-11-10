@@ -15,26 +15,26 @@ const bootstrap = async () => {
 };
 // bootstrap();
 
-async function initMessageEvent() {
-  const sock = await startSock();
-  const openAiHandler = new OpenAIHandler();
-  const messageHandler = new MessageHandler(sock, openAiHandler, env.GROUP_TARGET_JID);
+// async function initMessageEvent() {
+//   const sock = await startSock();
+//   const openAiHandler = new OpenAIHandler();
+//   const messageHandler = new MessageHandler(sock, openAiHandler, env.GROUP_TARGET_JID);
 
-  await messageHandler.init();
-  // @ts-ignore
-  sock.end();
-}
+//   await messageHandler.init();
+//   // @ts-ignore
+//   sock.end();
+// }
 
-// Cron job to start the server every day at 10:00 AM
-cron.schedule("0 10 * * *", async () => {
-  console.log("EVENT STARTED");
-  await initMessageEvent();
-  console.log("EVENT FINISHED");
-});
+// // Cron job to start the server every day at 10:00 AM
+// cron.schedule("0 10 * * *", async () => {
+//   console.log("EVENT STARTED");
+//   await initMessageEvent();
+//   console.log("EVENT FINISHED");
+// });
 
-// Cron job to start the server every day at 18:00 PM
-cron.schedule("0 18 * * *", async () => {
-  console.log("EVENT STARTED");
-  await initMessageEvent();
-  console.log("EVENT FINISHED");
-});
+// // Cron job to start the server every day at 18:00 PM
+// cron.schedule("0 18 * * *", async () => {
+//   console.log("EVENT STARTED");
+//   await initMessageEvent();
+//   console.log("EVENT FINISHED");
+// });

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import fs from "fs/promises";
 import path from "path";
 import { WAProto as proto, initAuthCreds, BufferJSON } from "@whiskeysockets/baileys";
@@ -33,7 +34,7 @@ export async function keyExists(sessionID: string) {
   }
 }
 
-export async function saveKey(sessionID: string, keyJson: string): Promise<Session | null> {
+export async function saveKey(sessionID: string, keyJson: string) {
   const jaExiste = await keyExists(sessionID);
   try {
     if (!jaExiste)
