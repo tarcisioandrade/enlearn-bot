@@ -28,13 +28,15 @@ model User {
 }
 
 model Score {
-  id         String   @id @unique @default(cuid())
-  week_start DateTime @default(now())
-  week_end   DateTime
-  score      Int      @default(0)
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  user_id    String
+  id                               String   @id @unique @default(cuid())
+  week_start                       DateTime @default(now())
+  week_end                         DateTime
+  score                            Int      @default(0)
+  createdAt                        DateTime @default(now())
+  weekly_participation_days        Int      @default(1)
+  consecutive_hard_correct_answers Int      @default(0)
+  user                             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id                          String
 
   @@index([week_start, week_end])
   @@index([user_id])

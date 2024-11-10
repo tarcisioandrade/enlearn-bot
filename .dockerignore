@@ -26,3 +26,4 @@ media/
 # Node (caso tenha arquivos frontend)
 node_modules/
 npm-debug.log 
+sessions/

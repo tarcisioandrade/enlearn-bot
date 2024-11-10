@@ -1,6 +1,8 @@
 import { env } from "../env";
 import axios from "axios";
 import { QuestionCreateInput, QuestionService } from "../services/question.service";
+import { Difficulty, QuestionType } from "@prisma/client";
+import { AIHandler, IAnswerValidation } from "../interfaces/AIHandler";
 
 const instance = axios.create({
   baseURL: "https://api.openai.com/v1",
@@ -10,17 +12,18 @@ const instance = axios.create({
   },
 });
 
-export class OpenAIHandler {
-  readonly prompt =
-    "Crie uma pergunta que pode ser de dois tipos: tradução (você escreve uma frase e os usuários deve chegar o mais perto da tradução) ou multipla escolha, você decide qual vai ser, mande apenas uma pergunta, a pergunta é para testar os conhecimentos de inglês de um usuário, se for uma TRANSLATION, voce manda a frase em inglês para ser traduzida para português, dificuldade: MEDIUM. Mande um json com as seguintes informações: content, options (array vazio se for do tipo TRANSLATION), correct_answer, type, difficulty. (type: TRANSLATION ou MULTIPLE_CHOICE), (difficulty: EASY, MEDIUM, HARD)";
-
+export class OpenAIHandler implements AIHandler {
   public question_id: string;
+  private questionService = new QuestionService();
 
-  constructor(private questionService: QuestionService) {}
-  async createQuestion() {
+  constructor() {}
+
+  async createQuestion(type: QuestionType, difficulty: Difficulty, theme: string): Promise<QuestionCreateInput> {
+    const prompt = `Crie uma pergunta que do tipo ${type} e com o tema ${theme}, mande apenas uma pergunta, a pergunta é para testar os conhecimentos de inglês de um usuário, se for uma TRANSLATION, voce manda a frase em inglês para ser traduzida para português, se for MULTIPLE_CHOICE, crie uma pergunta para testar os conhecimentos de inglês de um usuário com uma resposta correta e três opções incorretas (coloque-as em alternativas (Ex: a), b), c)). Dificuldade: ${difficulty}. Mande um json com as seguintes informações: content, options (array vazio se for do tipo TRANSLATION), correct_answer, type, difficulty. (type: TRANSLATION ou MULTIPLE_CHOICE), (difficulty: EASY, MEDIUM, HARD)`;
+
     const { data } = await instance.post("/chat/completions", {
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: this.prompt }],
+      messages: [{ role: "user", content: prompt }],
     });
     console.log("data", data.choices[0].message.content);
     const question = data.choices[0].message.content;
@@ -31,26 +34,47 @@ export class OpenAIHandler {
 
     this.question_id = createdQuestion.id;
 
-    return { content: questionParsed.content, difficulty: questionParsed.difficulty, type: questionParsed.type };
+    return {
+      content: questionParsed.content,
+      difficulty: questionParsed.difficulty,
+      type: questionParsed.type,
+      options: questionParsed.options,
+      correct_answer: questionParsed.correct_answer,
+    };
   }
 
   async validateAnswer() {
     const question = await this.questionService.get(this.question_id);
 
-    const prompt = `Para validar as respostas dos usuários, siga este formato: 1. Se a pergunta for do tipo 'TRANSLATION', responda assim: Análise das respostas dos usuários: - *{user.name}*: Forneça um feedback detalhado sobre a resposta desse usuário, explicando os erros e acertos específicos na tradução. Indique se a tradução contém palavras ou estruturas incorretas ou menos apropriadas e se ela captou a ideia principal. - *{user.name}*: Avalie a tradução deste usuário, destacando onde ele acertou ou errou na estrutura ou no sentido. Mencione se ele usou palavras próximas ao significado correto ou se houve algum deslize relevante. Conclua indicando qual usuário chegou mais perto da tradução correta, mesmo que não tenha sido perfeita. Tradução correta: Escreva a tradução completa da frase em inglês fornecida na pergunta. - Se a pergunta for do tipo 'MULTIPLE_CHOICE', responda assim: Análise das respostas dos usuários: - *{user.name}*: Indique se o usuário escolheu a resposta correta ou incorreta, mencionando brevemente o motivo da escolha errada, se houver. - *{user.name}*: Repita para cada usuário. Conclua indicando quantos usuários acertaram a resposta e quantos erraram. Exemplo para 'TRANSLATION': 'Análise das respostas dos usuários: 1. Henrique Neto: A resposta contém uma tradução incorreta de \"convey\" como \"converter\" e também usa a palavra \"utterring\", que é um erro. Portanto, essa resposta não está correta. - *Ana Paula*: A resposta traduz \"convey\" como \"converter\", que não é o termo mais adequado. No entanto, ela acertou ao manter a ideia principal e a estrutura da frase. A tradução \"sem uma única palavra\" também é aceitável, mas \"sem dizer uma única palavra\" é mais precisa. Portanto, a resposta de *Henrique Neto* é a que chegou mais perto da resposta correta, apesar de não ser perfeita. Tradução correta: [Tradução completa da frase aqui]' Exemplo para 'MULTIPLE_CHOICE': 'Análise das respostas dos usuários: - Henrique Neto: Escolheu a resposta incorreta. A opção selecionada indicava uma ação contínua, mas a pergunta queria um resultado específico. - *Ana Paula*: Escolheu a resposta correta. Total: 1 usuário acertou, 1 usuário errou.'. 
-    Informações que voce precisa: 
-    Tipo da pergunta: ${question?.type}
-    Pergunta: ${question?.content}
-    Resposta dos usuários: ${question?.responses.map((r) => `${r.user.push_name}: ${r.answer}`).join("\n")}
-    Resposta correta: ${question?.correct_answer}`;
+    const usersAnswersFormatter = question.responses.map((r) => ({
+      id: r.user.id,
+      pushName: r.user.push_name,
+      answer: r.answer,
+    }));
+
+    const prompt = `Para validar as respostas dos usuários, siga este formato: 1. Se a pergunta for do tipo 'TRANSLATION', responda assim: Análise das respostas dos usuários:\n - *{user.name}*: Forneça um feedback detalhado sobre a resposta desse usuário, explicando os erros e acertos específicos na tradução. Indique se a tradução contém palavras ou estruturas incorretas ou menos apropriadas e se ela captou a ideia principal. Se houver mais de um usuário conclua indicando qual usuário chegou mais perto da tradução correta, mesmo que não tenha sido perfeita. Eu tambem preciso que você sempre escreva a tradução em português da pergunta fornecida caso for do tipo TRANSLATION, se for MULTIPLE_CHOICE, informe qual é a alternativa correta. - Se a pergunta for do tipo 'MULTIPLE_CHOICE', responda assim: Análise das respostas dos usuários: - *{user.name}*: Indique se o usuário escolheu a resposta correta ou incorreta, mencionando brevemente o motivo da escolha errada, se houver. - *{user.name}*: Repita para cada usuário. No final da análise, inclua 'VENCEDOR: {id}' para indicar o usuário vencedor, em caso perguntas do tipo TRANSLATION, verifique quem teve a resposta mais próxima da correta, mas sem exibi-lo no texto principal, se houver apenas um usúario (se houver mais um vencedor, separe os {id} por vírgula e um espaço), mas ele não acertou, não inclua o vencedor.
+    Informações que voce precisa: Tipo da pergunta: ${question?.type} Pergunta: ${
+      question?.content
+    } Resposta dos usuários: ${JSON.stringify(usersAnswersFormatter)}\n
+     Resposta correta: ${question?.correct_answer}`;
 
     const { data } = await instance.post("/chat/completions", {
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
     });
 
-    console.log("data.choices[0].message.content", data.choices[0].message.content);
+    const responseContent = data.choices[0].message.content;
 
-    return data.choices[0].message.content;
+    console.log("responseContent", responseContent);
+    return this.extractWinner(responseContent);
+  }
+
+  private extractWinner(validationText: string): IAnswerValidation {
+    const winnerMatch = validationText.match(/VENCEDOR: (\w{25})/);
+    const winnersIds = winnerMatch ? winnerMatch[1].split(", ") : [];
+
+    const responseWithoutWinner = validationText.replace(/VENCEDOR: .*/, "").trim();
+
+    return { winnersIds, content: responseWithoutWinner };
   }
 }

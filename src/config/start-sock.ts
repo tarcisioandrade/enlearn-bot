@@ -16,9 +16,11 @@ import { env } from "../env";
 const msgRetryCounterCache = new NodeCache();
 
 export const startSock = async () => {
-  const { state, saveCreds } = await useSession(env.BOT_NAME);
+  const { state, saveCreds } = await useSession(env.SESSION_NAME);
   const { version, isLatest } = await fetchLatestBaileysVersion();
   console.log(`using WA v${version.join(".")}, isLatest: ${isLatest}`);
+
+  let isManualDisconnect = false;
 
   const sock = makeWASocket({
     version,
@@ -36,7 +38,9 @@ export const startSock = async () => {
   sock.ev.on("connection.update", (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === "close") {
-      const shouldReconnect = (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+      const shouldReconnect =
+        (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut && !isManualDisconnect;
+      console.log("ERROR STATUS_CODE", (lastDisconnect.error as Boom)?.output?.statusCode);
       console.log("connection closed due to ", lastDisconnect.error, ", reconnecting ", shouldReconnect);
       // reconnect if not logged out
       if (shouldReconnect) {
@@ -47,7 +51,11 @@ export const startSock = async () => {
     }
   });
 
-  sock.ev.on("creds.update", saveCreds);
+  sock.end = () => {
+    isManualDisconnect = true;
+    sock.ws.close();
+  };
 
+  sock.ev.on("creds.update", saveCreds);
   return sock;
 };

@@ -1,21 +1,18 @@
 import { BaileysEventMap, WASocket } from "@whiskeysockets/baileys";
 import { env } from "process";
 import { UserService } from "../services/user.service";
+import { RULES_TEXT } from "../constants";
+import { compoundMessage } from "../utils/compound-message";
 
 export class TaskHandler {
   private taskParticipants: Set<string> = new Set();
   private taskTimeout: NodeJS.Timeout | null = null;
-  private duration = 10000;
+  private duration = 180000;
+  private userService = new UserService();
 
-  constructor(private sock: WASocket, private userHandler: UserService) {
-    this.initialize();
-  }
+  constructor(private sock: WASocket) {}
 
-  private initialize = () => {
-    this.createTask();
-  };
-
-  private createTask = async () => {
+  async init() {
     this.sock.ev.on("messages.upsert", async (upsert) => {
       const msg = upsert.messages[0];
       if (!msg.message || msg.key.remoteJid !== env.GROUP_TARGET_JID) return;
@@ -24,23 +21,23 @@ export class TaskHandler {
 
       if (messageContent?.startsWith("!create")) {
         await this.sock.sendMessage(msg.key.remoteJid!, {
-          text: "Você iniciou uma task!\n\nQuem serão os participantes?\n\nDigite `!join` para ingressar",
+          text: compoundMessage(
+            "Você iniciou uma task!\n\nQuem serão os participantes?\n\nDigite `!join` para ingressar"
+          ),
         });
 
         this.sock.ev.on("messages.upsert", this.joinHandler);
 
-        // Clear previous timeout if exists
         if (this.taskTimeout) {
           clearTimeout(this.taskTimeout);
         }
 
-        // Set new timeout
         this.taskTimeout = setTimeout(async () => {
           await this.taskTimeoutFinish(msg.key.remoteJid!);
         }, this.duration);
       }
     });
-  };
+  }
 
   private joinHandler = async (joinUpsert: BaileysEventMap["messages.upsert"]) => {
     const msg = joinUpsert.messages[0];
@@ -50,7 +47,7 @@ export class TaskHandler {
     if (messageContent === "!join") {
       const participant = msg.key.participant;
       try {
-        await this.userHandler.create(participant, msg.pushName);
+        await this.userService.create(participant, msg.pushName);
         this.taskParticipants.add(msg.pushName);
       } catch (error) {
         console.error(error);
@@ -59,29 +56,34 @@ export class TaskHandler {
       }
 
       await this.sock.sendMessage(msg.key.remoteJid!, {
-        text: `${msg.pushName} entrou na task!\n\nParticipantes atuais:\n${Array.from(this.taskParticipants)
-          .map((p) => `- ${p}`)
-          .join("\n")}`,
+        text: compoundMessage(`&${msg.pushName}& entrou!`),
       });
     }
 
     if (messageContent.startsWith("!end")) {
       await this.sock.sendMessage(msg.key.remoteJid!, {
-        text: `Inscrições Encerradas!\n\nParticipantes:\n${Array.from(this.taskParticipants)
-          .map((p) => `- ${p}`)
-          .join("\n")}`,
+        text: compoundMessage(
+          `Inscrições Encerradas!\n\nParticipantes:\n${Array.from(this.taskParticipants).map((p) => `- ${p}`.trim())}`
+        ),
       });
 
       this.cleanUp();
+      this.sendRules(msg.key.remoteJid);
     }
   };
 
   private taskTimeoutFinish = async (remoteJid: string) => {
     await this.sock.sendMessage(remoteJid, {
-      text: `Tempo esgotado!\n\nParticipantes finais:\n${Array.from(this.taskParticipants).join("\n")}`,
+      text: compoundMessage(`Tempo esgotado!\n\nParticipantes finais:\n${Array.from(this.taskParticipants)}`),
     });
-
     this.cleanUp();
+    this.sendRules(remoteJid);
+  };
+
+  private sendRules = async (remoteJid: string) => {
+    await this.sock.sendMessage(remoteJid, {
+      text: RULES_TEXT,
+    });
   };
 
   private cleanUp = () => {
