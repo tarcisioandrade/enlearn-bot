@@ -40,7 +40,7 @@ cron.schedule("0 10 * * *", async () => {
 });
 
 // Cron job to start the server every day at 18:00 PM
-cron.schedule("0 18 * * *", async () => {
+cron.schedule("0 19 * * *", async () => {
   console.log("EVENT STARTED");
   await initMessageEvent();
   console.log("EVENT FINISHED");
