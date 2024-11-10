@@ -1,6 +1,9 @@
 {
   "name": "enlearn-bot",
   "module": "server.ts",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
