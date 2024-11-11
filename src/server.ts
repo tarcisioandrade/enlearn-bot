@@ -44,9 +44,18 @@ cron.schedule("0 10 * * *", async () => await initMessageEvent(), {
 });
 
 // Cron job to start the server every day at 18:00 PM
-cron.schedule("0 18 * * *", async () => await initMessageEvent(true), {
-  timezone: "America/Sao_Paulo",
-});
+cron.schedule(
+  "0 18 * * *",
+  async () => {
+    const today = new Date();
+    const isLastDayOfWeek = today.getDay() === 6;
+
+    await initMessageEvent(isLastDayOfWeek);
+  },
+  {
+    timezone: "America/Sao_Paulo",
+  }
+);
 
 startHttpServer();
 bootstrap();
