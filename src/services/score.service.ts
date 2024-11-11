@@ -8,12 +8,12 @@ interface IScoreCreateInput {
 }
 
 export class ScoreService {
-  async create({ user_id, score, weeklyParticipationDays, consecutiveHardCorrectAnswers }: IScoreCreateInput) {
+  async createOrUpdate({ user_id, score, weeklyParticipationDays, consecutiveHardCorrectAnswers }: IScoreCreateInput) {
     const current = await this.getCurrentWeek(user_id);
 
     return prisma.score.upsert({
       create: {
-        user_id,
+        user_id,  
         week_start: new Date(),
         week_end: new Date(new Date().setDate(new Date().getDate() + 7)),
         score: score,
@@ -32,6 +32,13 @@ export class ScoreService {
   async getCurrentWeek(user_id: string) {
     return prisma.score.findFirst({
       where: { user_id, week_start: { lte: new Date() }, week_end: { gte: new Date() } },
+    });
+  }
+
+  async getAllScoresToCurrentWeek() {
+    return prisma.score.findMany({
+      where: { week_start: { lte: new Date() }, week_end: { gte: new Date() } },
+      include: { user: true },
     });
   }
 }

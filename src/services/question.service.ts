@@ -26,4 +26,14 @@ export class QuestionService {
       },
     });
   };
+
+  public getAll = async () => {
+    return prisma.question.findMany({
+      where: {
+        responses: {
+          some: {},
+        },
+      },
+    });
+  };
 }

@@ -1,15 +1,14 @@
 import { BaileysEventMap, WASocket } from "@whiskeysockets/baileys";
 import { UserService } from "../services/user.service";
 import { env } from "../env";
-import { ScoreService } from "../services/score.service";
 import { ResponseService } from "../services/response.service";
 import { QuestionCreateInput, QuestionService } from "../services/question.service";
 import { Difficulty, QuestionType } from "@prisma/client";
-import { calculateScore } from "../utils/calculate-score";
 import { compoundMessage } from "../utils/compound-message";
 import { MessageFinishEvent } from "../events/message-finish.event";
 import { AIHandler } from "../interfaces/AIHandler";
 import { QUESTION_THEMES } from "../constants";
+import { ScoreHandler } from "./score.handler";
 
 interface QuestionInfo {
   theme: string;
@@ -19,8 +18,8 @@ interface QuestionInfo {
 
 export class MessageHandler {
   private userHandler = new UserService();
-  private scoreHandler = new ScoreService();
-  private responseHandler = new ResponseService();
+  private scoreHandler: ScoreHandler;
+  private responseService = new ResponseService();
   private questionService = new QuestionService();
   private taskTimeout: NodeJS.Timeout | null = null;
   private duration = 180000;
@@ -31,6 +30,7 @@ export class MessageHandler {
 
   constructor(private sock: WASocket, private openAi: AIHandler, private GROUP_TARGET_JID: string) {
     this.questionInfo = this.getQuestionInfo();
+    this.scoreHandler = new ScoreHandler(this.sock, this.GROUP_TARGET_JID);
   }
 
   async init() {
@@ -79,9 +79,9 @@ export class MessageHandler {
     console.log("userAlreadyAnswered", userAlreadyAnswered);
     if (userAlreadyAnswered) return;
 
-    await this.responseHandler.create(messageContent, this.openAi.question_id, currentUser.id);
+    await this.responseService.create(messageContent, this.openAi.question_id, currentUser.id);
 
-    const responses = await this.responseHandler.getAll(this.openAi.question_id);
+    const responses = await this.responseService.getAll(this.openAi.question_id);
 
     const allUsersAnswered = users.every((user) => responses.some((response) => response.user_id === user.id));
     console.log("allUsersAnswered", allUsersAnswered);
@@ -101,7 +101,7 @@ export class MessageHandler {
       text: compoundMessage(hasAnswers ? "Tempo esgotado!!!" : "Tempo esgotado, ninguém respondeu ☹️."),
     });
     if (hasAnswers) this.sendToValidate();
-    await this.resetUsersWeeklyScore();
+    await this.scoreHandler.resetUsersWeeklyScore(this.openAi.question_id);
     this.messageFinishEvent.emit();
   };
 
@@ -114,18 +114,17 @@ export class MessageHandler {
 
     if (response.winnersIds.length) {
       response.winnersIds.forEach(async (winnerId) => {
-        const currentScore = await this.scoreHandler.getCurrentWeek(winnerId);
+        const userResponse = await this.responseService.getByQuestionIdAndUserId(this.openAi.question_id, winnerId);
 
         const responseTimeInSeconds = (Date.now() - this.questionStartTime) / 1000;
-        const score = calculateScore({
+        await this.scoreHandler.createOrUpdate({
+          winnerId,
           questionType: this.questionInfo.type,
-          difficulty: this.questionInfo.difficulty,
+          questionDifficulty: this.questionInfo.difficulty,
           timeTaken: responseTimeInSeconds,
-          weeklyParticipationDays: currentScore?.weekly_participation_days ?? 0,
-          consecutiveHardCorrectAnswers: currentScore?.consecutive_hard_correct_answers ?? 0,
         });
 
-        await this.scoreHandler.create({ user_id: winnerId, score: score.value, ...score });
+        await this.responseService.setCorrect(userResponse.id);
       });
     }
 
@@ -136,25 +135,7 @@ export class MessageHandler {
     this.messageFinishEvent.emit();
   };
 
-  resetUsersWeeklyScore = async () => {
-    const users = await this.userHandler.getAll();
-    const responses = await this.responseHandler.getAll(this.openAi.question_id);
-
-    const usersNotAnswered = users.filter((user) => !responses.some((response) => response.user_id === user.id));
-    console.log("usersNotAnswered", usersNotAnswered);
-
-    usersNotAnswered.forEach(async (user) => {
-      const currentScore = await this.scoreHandler.getCurrentWeek(user.id);
-      if (currentScore) {
-        await this.scoreHandler.create({
-          user_id: user.id,
-          weeklyParticipationDays: 0,
-        });
-      }
-    });
-  };
-
-  sendTranslationMessage = async (question: QuestionCreateInput, jid: string) => {
+  private sendTranslationMessage = async (question: QuestionCreateInput, jid: string) => {
     this.sock.sendMessage(jid, {
       text: compoundMessage(
         `O Desafio vai começar 📢📢📢\n\nVocês tem ${this.duration / 1000} segundos para responder\n\nDificuldade: *${
@@ -164,15 +145,15 @@ export class MessageHandler {
     });
   };
 
-  sendMultipleChoiceMessage = async (question: QuestionCreateInput, jid: string) => {
+  private sendMultipleChoiceMessage = async (question: QuestionCreateInput, jid: string) => {
     console.log("question.options", question.options);
     this.sock.sendMessage(jid, {
       text: compoundMessage(
         `O Desafio vai começar 📢📢📢\n\nVocês tem ${this.duration / 1000} segundos para responder\n\nDificuldade: *${
           question.difficulty
-        }*\n\nTema: *${this.questionInfo.theme}*\n\n*${question.content}*\n\nEscolha a alternativa correta:\n\n${question.options
-          .map((option) => `- ${option}`)
-          .join("\n")}`
+        }*\n\nTema: *${this.questionInfo.theme}*\n\n*${
+          question.content
+        }*\n\nEscolha a alternativa correta:\n\n${question.options.map((option) => `- ${option}`).join("\n")}`
       ),
     });
   };
@@ -193,5 +174,9 @@ export class MessageHandler {
       type: questionType,
       difficulty: questionDifficulty,
     };
+  };
+
+  public sendRelatory = async () => {
+    await this.scoreHandler.generateRelatory();
   };
 }

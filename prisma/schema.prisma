@@ -58,6 +58,7 @@ model Question {
 model Response {
   id          String   @id @unique @default(cuid())
   answer      String
+  is_correct  Boolean  @default(false)
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   user_id     String
