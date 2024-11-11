@@ -11,7 +11,7 @@ import useSession from "./session";
 import logger from "../utils/logger";
 import { Boom } from "@hapi/boom";
 import { env } from "../env";
-import { SessionService } from "src/services/session.service";
+import { SessionService } from "../services/session.service";
 
 // external map to store retry counts of messages when decryption/encryption fails
 // keep this out of the socket itself, so as to prevent a message decryption/encryption loop across socket restarts

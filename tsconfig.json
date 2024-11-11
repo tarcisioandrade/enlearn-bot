@@ -7,7 +7,6 @@
     "lib": ["ES2023"],
     "noImplicitAny": true,
     "outDir": "dist",
-    "baseUrl": ".",
     // "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
