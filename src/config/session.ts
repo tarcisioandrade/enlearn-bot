@@ -65,7 +65,7 @@ export async function getAuthKey(sessionID: string) {
   }
 }
 
-async function deleteAuthKey(sessionID: string) {
+export async function deleteAuthKey(sessionID: string) {
   try {
     let registro = await keyExists(sessionID);
     if (!registro) return;

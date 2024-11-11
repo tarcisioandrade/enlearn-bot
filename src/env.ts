@@ -8,6 +8,8 @@ const envSchema = z.object({
   BOT_NAME: z.string(),
   AI_TOKEN: z.string(),
   SESSION_NAME: z.string(),
+  CREATE_SESSION: z.string().transform((v) => v.toLowerCase() === "true"),
+  START_CREATE_TASK: z.string().transform((v) => v.toLowerCase() === "true"),
 });
 
 export const env = envSchema.parse(process.env);

@@ -1,26 +1,10 @@
-// @ts-nocheck
 import { startSock } from "./config/start-sock";
 import { env } from "./env";
 import { OpenAIHandler } from "./handlers/open-ai.handler";
 import { MessageHandler } from "./handlers/message.handler";
 import { TaskHandler } from "./handlers/task.handler";
 import cron from "node-cron";
-import fs from "fs";
 import { startHttpServer } from "./config/http";
-
-const bootstrap = async () => {
-  if (!fs.existsSync("sessions/")) {
-    const sock = await startSock();
-    // const openAiHandler = new OpenAIHandler();
-    // const taskHandler = new TaskHandler(sock);
-    // await taskHandler.init();
-
-    // const messageHandler = new MessageHandler(sock, openAiHandler, env.GROUP_TARGET_JID);
-    // await messageHandler.init();
-  }
-};
-
-bootstrap();
 
 async function initMessageEvent() {
   const sock = await startSock();
@@ -31,6 +15,23 @@ async function initMessageEvent() {
   // @ts-ignore
   sock.end();
 }
+
+const bootstrap = async () => {
+  if (env.CREATE_SESSION) {
+    const disconnectAfterCreateSession = true;
+    await startSock(disconnectAfterCreateSession);
+  }
+
+  if (env.START_CREATE_TASK) {
+    const sock = await startSock();
+    const taskHandler = new TaskHandler(sock);
+    await taskHandler.init();
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    // initMessageEvent();
+  }
+};
 
 // Cron job to start the server every day at 10:00 AM
 cron.schedule(
@@ -59,3 +60,4 @@ cron.schedule(
 );
 
 startHttpServer();
+bootstrap();

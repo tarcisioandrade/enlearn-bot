@@ -56,7 +56,7 @@ export class TaskHandler {
       }
 
       await this.sock.sendMessage(msg.key.remoteJid!, {
-        text: compoundMessage(`&${msg.pushName}& entrou!`),
+        text: compoundMessage(`*${msg.pushName}* entrou!`),
       });
     }
 
@@ -68,7 +68,10 @@ export class TaskHandler {
       });
 
       this.cleanUp();
-      this.sendRules(msg.key.remoteJid);
+      await this.sendRules(msg.key.remoteJid);
+
+      // @ts-ignore
+      this.sock.end();
     }
   };
 
@@ -77,7 +80,10 @@ export class TaskHandler {
       text: compoundMessage(`Tempo esgotado!\n\nParticipantes finais:\n${Array.from(this.taskParticipants)}`),
     });
     this.cleanUp();
-    this.sendRules(remoteJid);
+    await this.sendRules(remoteJid);
+
+    // @ts-ignore
+    this.sock.end();
   };
 
   private sendRules = async (remoteJid: string) => {
