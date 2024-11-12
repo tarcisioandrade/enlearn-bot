@@ -3,6 +3,8 @@ import axios from "axios";
 import { QuestionCreateInput, QuestionService } from "../services/question.service";
 import { Difficulty, QuestionType } from "@prisma/client";
 import { AIHandler, IAnswerValidation } from "../interfaces/AIHandler";
+import { ICacheService } from "../interfaces/CacheService";
+import { cacheKeys } from "../constants";
 
 const instance = axios.create({
   baseURL: "https://api.openai.com/v1",
@@ -13,10 +15,10 @@ const instance = axios.create({
 });
 
 export class OpenAIHandler implements AIHandler {
-  public question_id: string;
+  public question_id = "";
   private questionService = new QuestionService();
 
-  constructor() {}
+  constructor(private cacheService: ICacheService) {}
 
   async createQuestion(type: QuestionType, difficulty: Difficulty, theme: string): Promise<QuestionCreateInput> {
     const prompt = `Crie uma pergunta que do tipo ${type} e com o tema ${theme}, mande apenas uma pergunta, a pergunta é para testar os conhecimentos de inglês de um usuário, se for uma TRANSLATION, voce manda a frase em inglês para ser traduzida para português, se for MULTIPLE_CHOICE, crie uma pergunta para testar os conhecimentos de inglês de um usuário com uma resposta correta e três opções incorretas (coloque-as em alternativas (Ex: a), b), c)). Dificuldade: ${difficulty}. Mande um json com as seguintes informações: content, options (array vazio se for do tipo TRANSLATION), correct_answer, type, difficulty. (type: TRANSLATION ou MULTIPLE_CHOICE), (difficulty: EASY, MEDIUM, HARD)`;
@@ -44,7 +46,11 @@ export class OpenAIHandler implements AIHandler {
   }
 
   async validateAnswer() {
-    const question = await this.questionService.get(this.question_id);
+    const question = await this.cacheService.getOrCreateCache(cacheKeys.QUESTION, () =>
+      this.questionService.get(this.question_id)
+    );
+
+    if (!question?.responses.length) return null;
 
     const usersAnswersFormatter = question.responses.map((r) => ({
       id: r.user.id,
@@ -66,10 +72,18 @@ export class OpenAIHandler implements AIHandler {
     const responseContent = data.choices[0].message.content;
 
     console.log("responseContent", responseContent);
-    return this.extractWinner(responseContent);
+
+    const result = this.extractWinner(responseContent);
+    const losersIds = question.responses.map((r) => r.user.id).filter((id) => !result.winnersIds.includes(id));
+
+    return {
+      winnersIds: result.winnersIds,
+      content: result.content,
+      losersIds,
+    };
   }
 
-  private extractWinner(validationText: string): IAnswerValidation {
+  private extractWinner(validationText: string): Omit<IAnswerValidation, "losersIds"> {
     const winnerMatch = validationText.match(/VENCEDOR: (\w{25})/);
     const winnersIds = winnerMatch ? winnerMatch[1].split(", ") : [];
 

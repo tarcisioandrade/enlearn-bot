@@ -6,6 +6,7 @@ import {
   makeCacheableSignalKeyStore,
   isJidBroadcast,
   WASocket,
+  Browsers,
 } from "@whiskeysockets/baileys";
 import useSession from "./session";
 import logger from "../utils/logger";
@@ -33,8 +34,10 @@ export const startSock = async (disconnectAfterCreateSession = false): Promise<W
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
     msgRetryCounterCache,
+    maxMsgRetryCount: 0,
     generateHighQualityLinkPreview: true,
     shouldIgnoreJid: (jid) => isJidBroadcast(jid),
+    browser: Browsers.ubuntu(env.BOT_NAME),
   });
 
   sock.end = () => {
@@ -46,11 +49,11 @@ export const startSock = async (disconnectAfterCreateSession = false): Promise<W
     const { connection, lastDisconnect } = update;
     if (connection === "close") {
       const shouldReconnect =
-        (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut && !isManualDisconnect;
-      console.log("ERROR STATUS_CODE", (lastDisconnect.error as Boom)?.output?.statusCode);
-      console.log("connection closed due to ", lastDisconnect.error, ", reconnecting ", shouldReconnect);
+        (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut && !isManualDisconnect;
+      console.log("ERROR STATUS_CODE", (lastDisconnect?.error as Boom)?.output?.statusCode);
+      console.log("connection closed due to ", lastDisconnect?.error, ", reconnecting ", shouldReconnect);
 
-      if ((lastDisconnect.error as Boom)?.output?.payload.error === "Unauthorized") {
+      if ((lastDisconnect?.error as Boom)?.output?.payload.error === "Unauthorized") {
         const sessionService = new SessionService();
         await sessionService.deleteAll();
         startSock(true);

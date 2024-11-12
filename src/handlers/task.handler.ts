@@ -42,12 +42,15 @@ export class TaskHandler {
   private joinHandler = async (joinUpsert: BaileysEventMap["messages.upsert"]) => {
     const msg = joinUpsert.messages[0];
     const messageContent = msg.message?.conversation;
-    if (!msg.message || msg.key.remoteJid !== env.GROUP_TARGET_JID) return;
+    if (!msg.message || msg.key.remoteJid !== env.GROUP_TARGET_JID || !messageContent) return;
+
+    const participant = msg.key.participant;
+
+    if (!participant || !msg.pushName) return;
 
     if (messageContent === "!join") {
-      const participant = msg.key.participant;
       try {
-        await this.userService.create(participant, msg.pushName);
+        await this.userService.create(participant, msg.pushName!);
         this.taskParticipants.add(msg.pushName);
       } catch (error) {
         console.error(error);
@@ -68,7 +71,7 @@ export class TaskHandler {
       });
 
       this.cleanUp();
-      await this.sendRules(msg.key.remoteJid);
+      await this.sendRules(msg.key.remoteJid!);
 
       // @ts-ignore
       this.sock.end();
@@ -95,7 +98,7 @@ export class TaskHandler {
   private cleanUp = () => {
     this.taskParticipants.clear();
     this.sock.ev.off("messages.upsert", this.joinHandler);
-    clearTimeout(this.taskTimeout);
+    if (this.taskTimeout) clearTimeout(this.taskTimeout);
     this.taskTimeout = null;
   };
 }

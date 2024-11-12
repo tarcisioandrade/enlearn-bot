@@ -5,12 +5,16 @@ import { MessageHandler } from "./handlers/message.handler";
 import { TaskHandler } from "./handlers/task.handler";
 import cron from "node-cron";
 import { startHttpServer } from "./config/http";
+import { NodeCacheService } from "./services/node-cache.service";
 
 async function initMessageEvent(generateRelatory = false) {
   console.log("EVENT STARTED");
   const sock = await startSock();
-  const openAiHandler = new OpenAIHandler();
-  const messageHandler = new MessageHandler(sock, openAiHandler, env.GROUP_TARGET_JID);
+  // await setTimeout(5000);
+
+  const cacheService = new NodeCacheService();
+  const openAiHandler = new OpenAIHandler(cacheService);
+  const messageHandler = new MessageHandler(sock, openAiHandler, cacheService, env.GROUP_TARGET_JID);
 
   await messageHandler.init();
 

@@ -33,7 +33,6 @@ Ao final de cada semana, faremos um balanço para divulgar quem foram os destaqu
 
 Boa sorte a todos, e lembrem-se: aqui cada resposta conta para o seu aprendizado e para seu lugar no placar. Participem, tentem sempre e vamos juntos conquistar o inglês!`;
 
-
 export const QUESTION_THEMES = [
   "Vocabulário do Dia a Dia",
   "Expressões Idiomáticas e Gírias",
@@ -54,6 +53,12 @@ export const QUESTION_THEMES = [
   "Arte e Literatura",
   "Termos Financeiros",
   "Emoções e Sentimentos",
-  "Transporte e Direções"
+  "Transporte e Direções",
 ];
 
+export const cacheKeys = {
+  QUESTION: "question",
+  ALL_USERS: "all_users",
+  QUESTION_RESPONSES: "question_responses",
+  CURRENT_SCORE: "current_score",
+};

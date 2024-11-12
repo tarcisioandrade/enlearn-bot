@@ -4,10 +4,11 @@ import { QuestionCreateInput } from "../services/question.service";
 export interface IAnswerValidation {
   winnersIds: string[];
   content: string;
+  losersIds: string[];
 }
 
 export interface AIHandler {
   question_id: string;
   createQuestion: (type: QuestionType, difficulty: Difficulty, theme: string) => Promise<QuestionCreateInput>;
-  validateAnswer: () => Promise<IAnswerValidation>;
+  validateAnswer: () => Promise<IAnswerValidation | null>;
 }

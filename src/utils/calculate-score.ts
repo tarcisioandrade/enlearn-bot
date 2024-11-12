@@ -1,65 +1,53 @@
 import { Difficulty, QuestionType } from "@prisma/client";
 
 export interface ICaculateStoreInput {
+  status: "WINNER" | "LOSER";
   questionType: QuestionType;
   difficulty: Difficulty;
   timeTaken: number;
-  weeklyParticipationDays: number;
-  consecutiveHardCorrectAnswers: number;
+  weeklyParticipationDays?: number;
+  consecutiveHardCorrectAnswers?: number;
 }
 
 export function calculateScore({
+  status,
   questionType,
   difficulty,
   timeTaken,
-  weeklyParticipationDays,
-  consecutiveHardCorrectAnswers,
+  weeklyParticipationDays = 0,
+  consecutiveHardCorrectAnswers = 0,
 }: ICaculateStoreInput) {
   let baseScore = 0;
 
-  // 1. Pontuação base por tipo de pergunta e dificuldade
-  if (questionType === QuestionType.MULTIPLE_CHOICE) {
-    switch (difficulty) {
-      case Difficulty.EASY:
-        baseScore = 5;
-        break;
-      case Difficulty.MEDIUM:
-        baseScore = 8;
-        break;
-      case Difficulty.HARD:
-        baseScore = 12;
-        break;
-    }
-  } else if (questionType === QuestionType.TRANSLATION) {
-    switch (difficulty) {
-      case Difficulty.EASY:
-        baseScore = 10;
-        break;
-      case Difficulty.MEDIUM:
-        baseScore = 15;
-        break;
-      case Difficulty.HARD:
-        baseScore = 20;
-        break;
-    }
+  const scoreMap: Record<QuestionType, Record<Difficulty, number>> = {
+    MULTIPLE_CHOICE: {
+      EASY: 5,
+      MEDIUM: 8,
+      HARD: 12,
+    },
+    TRANSLATION: {
+      EASY: 10,
+      MEDIUM: 15,
+      HARD: 20,
+    },
+  };
+
+  if (status === "WINNER") {
+    baseScore = scoreMap[questionType][difficulty] || 0;
+
+    const timeBonus = timeTaken <= 30 ? 5 : timeTaken <= 60 ? 3 : timeTaken <= 120 ? 1 : 0;
+    baseScore += timeBonus;
+
+    const frequencyBonus = weeklyParticipationDays >= 7 ? 20 : weeklyParticipationDays >= 5 ? 10 : 0;
+    baseScore += frequencyBonus;
+
+    const consecutiveBonus = difficulty === "HARD" && consecutiveHardCorrectAnswers >= 3 ? 15 : 0;
+    baseScore += consecutiveBonus;
   }
-
-  // 2. Bônus de velocidade
-  if (timeTaken <= 30) baseScore += 5;
-  else if (timeTaken <= 60) baseScore += 3;
-  else if (timeTaken <= 120) baseScore += 1;
-
-  // 4. Bônus de frequência semanal
-  if (weeklyParticipationDays >= 5) baseScore += 10; // Participou 5 dias
-  if (weeklyParticipationDays === 7) baseScore += 20; // Participou todos os dias
-
-  // 5. Bônus por acertos consecutivos em perguntas difíceis
-  if (consecutiveHardCorrectAnswers >= 3) baseScore += 15;
 
   return {
     value: Math.round(baseScore),
     weeklyParticipationDays: weeklyParticipationDays + 1,
-    consecutiveHardCorrectAnswers:
-      difficulty === "HARD" ? consecutiveHardCorrectAnswers + 1 : consecutiveHardCorrectAnswers,
+    consecutiveHardCorrectAnswers: difficulty === "HARD" ? consecutiveHardCorrectAnswers + 1 : 0,
   };
 }

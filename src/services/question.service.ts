@@ -1,6 +1,7 @@
 import { Difficulty, QuestionType } from "@prisma/client";
 import { prisma } from "../prisma";
 
+
 export interface QuestionCreateInput {
   content: string;
   difficulty: Difficulty;

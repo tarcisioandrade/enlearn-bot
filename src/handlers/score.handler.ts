@@ -6,9 +6,12 @@ import { QuestionService } from "../services/question.service";
 import { Difficulty, QuestionType } from "@prisma/client";
 import { calculateScore } from "../utils/calculate-score";
 import { UserService } from "../services/user.service";
+import { ICacheService } from "../interfaces/CacheService";
+import { cacheKeys } from "../constants";
 
 interface CreateOrUpdateScoreInput {
-  winnerId: string;
+  status: "WINNER" | "LOSER";
+  user_id: string;
   questionType: QuestionType;
   questionDifficulty: Difficulty;
   timeTaken: number;
@@ -17,23 +20,31 @@ interface CreateOrUpdateScoreInput {
 export class ScoreHandler {
   private userHandler = new UserService();
   private scoreService = new ScoreService();
-  private responseHandler = new ResponseService();
+  private responseService = new ResponseService();
   private questionService = new QuestionService();
 
-  constructor(private sock: WASocket, private GROUP_TARGET_JID: string) {}
+  constructor(private cacheService: ICacheService, private sock: WASocket, private GROUP_TARGET_JID: string) {}
 
   public createOrUpdate = async (input: CreateOrUpdateScoreInput) => {
-    const currentScore = await this.scoreService.getCurrentWeek(input.winnerId);
+    const currentScore = await this.cacheService.getOrCreateCache(cacheKeys.CURRENT_SCORE, () =>
+      this.scoreService.getCurrentWeek(input.user_id)
+    );
 
     const score = calculateScore({
+      status: input.status,
       questionType: input.questionType,
       difficulty: input.questionDifficulty,
       timeTaken: input.timeTaken,
-      weeklyParticipationDays: currentScore?.weekly_participation_days ?? 0,
-      consecutiveHardCorrectAnswers: currentScore?.consecutive_hard_correct_answers ?? 0,
+      weeklyParticipationDays: currentScore?.weekly_participation_days,
+      consecutiveHardCorrectAnswers: currentScore?.consecutive_hard_correct_answers,
     });
 
-    await this.scoreService.createOrUpdate({ user_id: input.winnerId, score: score.value, ...score });
+    await this.scoreService.createOrUpdate({
+      id: currentScore?.id,
+      user_id: input.user_id,
+      score: score.value,
+      ...score,
+    });
   };
 
   public generateRelatory = async () => {
@@ -45,7 +56,7 @@ export class ScoreHandler {
     const scores = await this.scoreService.getAllScoresToCurrentWeek();
     const scoresUserSorted = scores.sort((a, b) => b.score - a.score);
     const question = await this.questionService.getAll();
-    const responses = await this.responseHandler.getAllByCurrentWeek();
+    const responses = await this.responseService.getAllByCurrentWeek();
 
     const totalCorrectAnswers = responses.filter((r) => r.is_correct).length;
     const totalIncorrectAnswers = responses.filter((r) => !r.is_correct).length;
@@ -83,21 +94,50 @@ Bons estudos e até a próxima semana! 📚✨`;
     });
   };
 
-  public resetUsersWeeklyScore = async (questionId: string) => {
-    const users = await this.userHandler.getAll();
-    const responses = await this.responseHandler.getAll(questionId);
+  public resetUsersWeeklyParticipationDays = async (questionId: string) => {
+    const [users, responses] = await Promise.all([
+      this.cacheService.getOrCreateCache(cacheKeys.ALL_USERS, () => this.userHandler.getAll()),
+      this.cacheService.getOrCreateCache(cacheKeys.QUESTION_RESPONSES, () => this.responseService.getAll(questionId)),
+    ]);
 
     const usersNotAnswered = users.filter((user) => !responses.some((response) => response.user_id === user.id));
-    console.log("usersNotAnswered", usersNotAnswered);
 
     usersNotAnswered.forEach(async (user) => {
-      const currentScore = await this.scoreService.getCurrentWeek(user.id);
+      const currentScore = await this.cacheService.getOrCreateCache(cacheKeys.CURRENT_SCORE, () =>
+        this.scoreService.getCurrentWeek(user.id)
+      );
       if (currentScore) {
-        await this.scoreService.createOrUpdate({
-          user_id: user.id,
-          weeklyParticipationDays: 0,
-        });
+        await this.scoreService.resetConsecutiveWeeklyParticipationDays(currentScore.id, user.id);
       }
     });
+  };
+
+  public resetConsecutiveHardCorrectAnswers = async (questionId: string) => {
+    const usersIdsToReset = new Set<string>();
+
+    const [users, responses] = await Promise.all([
+      this.cacheService.getOrCreateCache(cacheKeys.ALL_USERS, () => this.userHandler.getAll()),
+      this.cacheService.getOrCreateCache(cacheKeys.QUESTION_RESPONSES, () => this.responseService.getAll(questionId)),
+    ]);
+
+    const usersNotAnswered = users
+      .filter((user) => !responses.some((response) => response.user_id === user.id))
+      .map((user) => user.id);
+    const usersLosers = responses.filter((response) => !response.is_correct).map((response) => response.user_id);
+
+    usersNotAnswered.forEach((id) => usersIdsToReset.add(id));
+    usersLosers.forEach((id) => usersIdsToReset.add(id));
+
+    await Promise.all(
+      Array.from(usersIdsToReset).map(async (loserId) => {
+        const currentScore = await this.cacheService.getOrCreateCache(cacheKeys.CURRENT_SCORE, () =>
+          this.scoreService.getCurrentWeek(loserId)
+        );
+
+        if (currentScore) {
+          await this.scoreService.resetConsecutiveHardCorrectAnswers(currentScore.id, loserId);
+        }
+      })
+    );
   };
 }
