@@ -6,7 +6,6 @@ import {
   makeCacheableSignalKeyStore,
   isJidBroadcast,
   WASocket,
-  Browsers,
 } from "@whiskeysockets/baileys";
 import useSession from "./session";
 import logger from "../utils/logger";
@@ -37,7 +36,6 @@ export const startSock = async (disconnectAfterCreateSession = false): Promise<W
     maxMsgRetryCount: 0,
     generateHighQualityLinkPreview: true,
     shouldIgnoreJid: (jid) => isJidBroadcast(jid),
-    browser: Browsers.ubuntu(env.BOT_NAME),
   });
 
   sock.end = () => {

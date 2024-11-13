@@ -10,7 +10,6 @@ import { NodeCacheService } from "./services/node-cache.service";
 async function initMessageEvent(generateRelatory = false) {
   console.log("EVENT STARTED");
   const sock = await startSock();
-  // await setTimeout(5000);
 
   const cacheService = new NodeCacheService();
   const openAiHandler = new OpenAIHandler(cacheService);
@@ -29,12 +28,14 @@ const bootstrap = async () => {
   if (env.CREATE_SESSION) {
     const disconnectAfterCreateSession = true;
     await startSock(disconnectAfterCreateSession);
+    return;
   }
 
   if (env.START_CREATE_TASK) {
     const sock = await startSock();
     const taskHandler = new TaskHandler(sock);
     await taskHandler.init();
+    return;
   }
 
   if (process.env.NODE_ENV === "development") {

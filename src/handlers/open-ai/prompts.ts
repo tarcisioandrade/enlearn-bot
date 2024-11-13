@@ -36,6 +36,8 @@ Portanto, a resposta de *Henrique Neto* é a que chegou mais perto da resposta c
 
 Tradução correta: [Tradução completa da frase aqui]' 
 
+VENCEDOR: (aqui você coloca o id do usuário que acertou a pergunta, se houver mais de um vencedor, coloque o id de cada um separado por vírgula e espaço)
+
 Exemplo para 'MULTIPLE_CHOICE':
 
 Analisando as respostas dos usuários:
@@ -44,20 +46,23 @@ Analisando as respostas dos usuários:
 
 2. *Ana Paula*: Escolheu a resposta correta.
 
-Total: 1 usuário acertou, 1 usuário errou.'`,
+Total: 1 usuário acertou, 1 usuário errou.'
+
+VENCEDOR: (aqui você coloca o id do usuário que acertou a pergunta, se houver mais de um vencedor, coloque o id de cada um separado por vírgula e espaço)`,
 
   user: (question: Question, usersAnswersFormatter: { id: string; pushName: string; answer: string }[]) => {
     return `Informações que voce precisa: Tipo da pergunta: ${question?.type} Pergunta: ${
       question?.content
     } Resposta dos usuários: ${JSON.stringify(usersAnswersFormatter)}\n
-     Resposta correta: ${question?.correct_answer}`;  
+     Resposta correta: ${question?.correct_answer}`;
   },
 };
 
 export const QUESTION_CREATION_PROMPT = {
   system:
     "Você precisa criar uma pergunta ou frase que seja adequada para o tipo e a dificuldade informada, e as perguntas devem fazer sentido para testar os conhecimentos desses usuários que estão aprendendo o idioma inglês.",
+  assistant: `Se a pergunta for do tipo TRANSLATION, voce manda a frase em inglês para ser traduzida para português, se for MULTIPLE_CHOICE, crie uma pergunta para testar os conhecimentos de inglês de um usuário com uma resposta correta e três opções incorretas (coloque-as em alternativas (Ex: a), b), c), d)). Mande um json com as seguintes informações: content, options (array vazio se for do tipo TRANSLATION), correct_answer, type, difficulty. (type: TRANSLATION ou MULTIPLE_CHOICE), (difficulty: EASY, MEDIUM, HARD)`,
   user: (type: QuestionType, difficulty: Difficulty, theme: string) => {
-    return `Crie uma pergunta que do tipo ${type} e com o tema ${theme}, mande apenas uma pergunta, a pergunta é para testar os conhecimentos de inglês de um usuário, se for uma TRANSLATION, voce manda a frase em inglês para ser traduzida para português, se for MULTIPLE_CHOICE, crie uma pergunta para testar os conhecimentos de inglês de um usuário com uma resposta correta e três opções incorretas (coloque-as em alternativas (Ex: a), b), c)). Dificuldade: ${difficulty}. Mande um json com as seguintes informações: content, options (array vazio se for do tipo TRANSLATION), correct_answer, type, difficulty. (type: TRANSLATION ou MULTIPLE_CHOICE), (difficulty: EASY, MEDIUM, HARD)`;
+    return `Crie uma pergunta que do tipo ${type} e com o tema ${theme} na dificuldade ${difficulty}`;
   },
 };

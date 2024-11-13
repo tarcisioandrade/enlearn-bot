@@ -102,10 +102,6 @@ export class MessageHandler {
       timeTaken: (Date.now() - this.questionStartTime) / 1000,
     });
 
-    // const responses = await this.cacheService.getOrCreateCache(cacheKeys.QUESTION_RESPONSES, () =>
-    //   this.responseService.getAll(this.openAi.question_id)
-    // );
-
     const allUsersAnswered = users.every((user) => this.usersAnswered.some((userAnswer) => userAnswer.id === user.id));
     console.log("allUsersAnswered", allUsersAnswered);
 
@@ -205,6 +201,8 @@ export class MessageHandler {
 ⏰ Tempo para responder: *${this.convertSecondsToMinutes(this.duration)} minutos*
 📊 Dificuldade: *${question.difficulty}*
 🎓 Tema: *${this.questionInfo.theme}*
+
+*${question.content}*
 
 *Escolha a alternativa correta:*
 ${question.options.map((option) => `- ${option}`).join("\n")}`

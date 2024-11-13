@@ -29,6 +29,10 @@ export class OpenAIHandler implements AIHandler {
           role: "system",
           content: QUESTION_CREATION_PROMPT.system,
         },
+        {
+          role: "assistant",
+          content: QUESTION_CREATION_PROMPT.assistant,
+        },
         { role: "user", content: QUESTION_CREATION_PROMPT.user(type, difficulty, theme) },
       ],
     });
