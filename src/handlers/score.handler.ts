@@ -7,7 +7,7 @@ import { Difficulty, QuestionType } from "@prisma/client";
 import { calculateScore } from "../utils/calculate-score";
 import { UserService } from "../services/user.service";
 import { ICacheService } from "../interfaces/CacheService";
-import { cacheKeys } from "../constants";
+import { CACHE_KEYS } from "../constants";
 
 interface CreateOrUpdateScoreInput {
   status: "WINNER" | "LOSER";
@@ -26,7 +26,7 @@ export class ScoreHandler {
   constructor(private cacheService: ICacheService, private sock: WASocket, private GROUP_TARGET_JID: string) {}
 
   public createOrUpdate = async (input: CreateOrUpdateScoreInput) => {
-    const currentScore = await this.cacheService.getOrCreateCache(cacheKeys.CURRENT_SCORE, () =>
+    const currentScore = await this.cacheService.getOrCreateCache(CACHE_KEYS.CURRENT_SCORE, () =>
       this.scoreService.getCurrentWeek(input.user_id)
     );
 
@@ -55,8 +55,11 @@ export class ScoreHandler {
 
     const scores = await this.scoreService.getAllScoresToCurrentWeek();
     const scoresUserSorted = scores.sort((a, b) => b.score - a.score);
-    const question = await this.questionService.getAll();
-    const responses = await this.responseService.getAllByCurrentWeek();
+
+    const [question, responses] = await Promise.all([
+      this.questionService.getAll(),
+      this.responseService.getAllByCurrentWeek(),
+    ]);
 
     const totalCorrectAnswers = responses.filter((r) => r.is_correct).length;
     const totalIncorrectAnswers = responses.filter((r) => !r.is_correct).length;
@@ -96,14 +99,14 @@ Bons estudos e até a próxima semana! 📚✨`;
 
   public resetUsersWeeklyParticipationDays = async (questionId: string) => {
     const [users, responses] = await Promise.all([
-      this.cacheService.getOrCreateCache(cacheKeys.ALL_USERS, () => this.userHandler.getAll()),
-      this.cacheService.getOrCreateCache(cacheKeys.QUESTION_RESPONSES, () => this.responseService.getAll(questionId)),
+      this.cacheService.getOrCreateCache(CACHE_KEYS.ALL_USERS, () => this.userHandler.getAll()),
+      this.cacheService.getOrCreateCache(CACHE_KEYS.QUESTION_RESPONSES, () => this.responseService.getAll(questionId)),
     ]);
 
     const usersNotAnswered = users.filter((user) => !responses.some((response) => response.user_id === user.id));
 
     usersNotAnswered.forEach(async (user) => {
-      const currentScore = await this.cacheService.getOrCreateCache(cacheKeys.CURRENT_SCORE, () =>
+      const currentScore = await this.cacheService.getOrCreateCache(CACHE_KEYS.CURRENT_SCORE, () =>
         this.scoreService.getCurrentWeek(user.id)
       );
       if (currentScore) {
@@ -116,8 +119,8 @@ Bons estudos e até a próxima semana! 📚✨`;
     const usersIdsToReset = new Set<string>();
 
     const [users, responses] = await Promise.all([
-      this.cacheService.getOrCreateCache(cacheKeys.ALL_USERS, () => this.userHandler.getAll()),
-      this.cacheService.getOrCreateCache(cacheKeys.QUESTION_RESPONSES, () => this.responseService.getAll(questionId)),
+      this.cacheService.getOrCreateCache(CACHE_KEYS.ALL_USERS, () => this.userHandler.getAll()),
+      this.cacheService.getOrCreateCache(CACHE_KEYS.QUESTION_RESPONSES, () => this.responseService.getAll(questionId)),
     ]);
 
     const usersNotAnswered = users
@@ -130,7 +133,7 @@ Bons estudos e até a próxima semana! 📚✨`;
 
     await Promise.all(
       Array.from(usersIdsToReset).map(async (loserId) => {
-        const currentScore = await this.cacheService.getOrCreateCache(cacheKeys.CURRENT_SCORE, () =>
+        const currentScore = await this.cacheService.getOrCreateCache(CACHE_KEYS.CURRENT_SCORE, () =>
           this.scoreService.getCurrentWeek(loserId)
         );
 

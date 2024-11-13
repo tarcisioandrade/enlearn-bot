@@ -56,7 +56,7 @@ export const QUESTION_THEMES = [
   "Transporte e Direções",
 ];
 
-export const cacheKeys = {
+export const CACHE_KEYS = {
   QUESTION: "question",
   ALL_USERS: "all_users",
   QUESTION_RESPONSES: "question_responses",

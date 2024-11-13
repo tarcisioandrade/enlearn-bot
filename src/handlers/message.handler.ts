@@ -7,7 +7,7 @@ import { Difficulty, QuestionType } from "@prisma/client";
 import { compoundMessage } from "../utils/compound-message";
 import { MessageFinishEvent } from "../events/message-finish.event";
 import { AIHandler } from "../interfaces/AIHandler";
-import { cacheKeys, QUESTION_THEMES } from "../constants";
+import { CACHE_KEYS, QUESTION_THEMES } from "../constants";
 import { ScoreHandler } from "./score.handler";
 import { ICacheService } from "../interfaces/CacheService";
 
@@ -80,7 +80,11 @@ export class MessageHandler {
 
     if (!msg.message || msg.key.remoteJid !== this.GROUP_TARGET_JID || !messageContent) return;
 
-    const users = await this.cacheService.getOrCreateCache(cacheKeys.ALL_USERS, () => this.userService.getAll(), 86400);
+    const users = await this.cacheService.getOrCreateCache(
+      CACHE_KEYS.ALL_USERS,
+      () => this.userService.getAll(),
+      86400 // 24 hours
+    );
     if (!users.length) return;
 
     const currentUser = users.find((u) => u.jid === msg.key.participant);
@@ -98,11 +102,11 @@ export class MessageHandler {
       timeTaken: (Date.now() - this.questionStartTime) / 1000,
     });
 
-    const responses = await this.cacheService.getOrCreateCache(cacheKeys.QUESTION_RESPONSES, () =>
-      this.responseService.getAll(this.openAi.question_id)
-    );
+    // const responses = await this.cacheService.getOrCreateCache(cacheKeys.QUESTION_RESPONSES, () =>
+    //   this.responseService.getAll(this.openAi.question_id)
+    // );
 
-    const allUsersAnswered = users.every((user) => responses.some((response) => response.user_id === user.id));
+    const allUsersAnswered = users.every((user) => this.usersAnswered.some((userAnswer) => userAnswer.id === user.id));
     console.log("allUsersAnswered", allUsersAnswered);
 
     if (allUsersAnswered) {
@@ -117,7 +121,7 @@ export class MessageHandler {
     await this.sock.sendMessage(remoteJid, {
       text: compoundMessage(hasAnswers ? "Tempo esgotado!!!" : "Tempo esgotado, ninguém respondeu ☹️."),
     });
-    if (hasAnswers) this.sendToValidate();
+    if (hasAnswers) await this.sendToValidate();
     await this.scoreHandler.resetUsersWeeklyParticipationDays(this.openAi.question_id);
     if (this.questionInfo.difficulty === "HARD") {
       await this.scoreHandler.resetConsecutiveHardCorrectAnswers(this.openAi.question_id);
@@ -179,9 +183,15 @@ export class MessageHandler {
   private sendTranslationMessage = async (question: QuestionCreateInput, jid: string) => {
     this.sock.sendMessage(jid, {
       text: compoundMessage(
-        `O Desafio vai começar 📢📢📢\n\nVocês tem ${this.duration / 1000} segundos para responder\n\nDificuldade: *${
-          question.difficulty
-        }*\n\nTema: *${this.questionInfo.theme}*\n\nTraduza a seguinte frase para o português:\n\n*${question.content}*`
+        `🌟 O Desafio vai começar! 🌟
+
+⏰ Tempo para responder: *${this.convertSecondsToMinutes(this.duration)} minutos*
+📊 Dificuldade: *${question.difficulty}*
+🎓 Tema: *${this.questionInfo.theme}*
+
+*Traduza a seguinte frase para o português:*
+
+"${question.content}"`
       ),
     });
   };
@@ -190,11 +200,14 @@ export class MessageHandler {
     console.log("question.options", question.options);
     this.sock.sendMessage(jid, {
       text: compoundMessage(
-        `O Desafio vai começar 📢📢📢\n\nVocês tem ${this.duration / 1000} segundos para responder\n\nDificuldade: *${
-          question.difficulty
-        }*\n\nTema: *${this.questionInfo.theme}*\n\n*${
-          question.content
-        }*\n\nEscolha a alternativa correta:\n\n${question.options.map((option) => `- ${option}`).join("\n")}`
+        `🌟 O Desafio vai começar! 🌟
+
+⏰ Tempo para responder: *${this.convertSecondsToMinutes(this.duration)} minutos*
+📊 Dificuldade: *${question.difficulty}*
+🎓 Tema: *${this.questionInfo.theme}*
+
+*Escolha a alternativa correta:*
+${question.options.map((option) => `- ${option}`).join("\n")}`
       ),
     });
   };
@@ -219,5 +232,9 @@ export class MessageHandler {
 
   public sendRelatory = async () => {
     await this.scoreHandler.generateRelatory();
+  };
+
+  private convertSecondsToMinutes = (seconds: number) => {
+    return Math.floor(seconds / 1000 / 60);
   };
 }
