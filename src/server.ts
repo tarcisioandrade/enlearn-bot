@@ -6,8 +6,9 @@ import { TaskHandler } from "./handlers/task.handler";
 import cron from "node-cron";
 import { startHttpServer } from "./config/http";
 import { NodeCacheService } from "./services/node-cache.service";
+import { DateValidate } from "./utils/date-validate";
 
-async function initMessageEvent(generateRelatory = false) {
+async function initMessage(generateWeekRelatory = false, generateMonthRelatory = false) {
   console.log("EVENT STARTED");
   const sock = await startSock();
 
@@ -17,7 +18,8 @@ async function initMessageEvent(generateRelatory = false) {
 
   await messageHandler.init();
 
-  if (generateRelatory) await messageHandler.sendRelatory();
+  if (generateWeekRelatory) await messageHandler.sendWeekRelatory();
+  if (generateMonthRelatory) await messageHandler.sendMonthRelatory();
 
   // @ts-ignore
   sock.end();
@@ -39,7 +41,7 @@ const bootstrap = async () => {
   }
 
   if (process.env.NODE_ENV === "development") {
-    initMessageEvent();
+    initMessage();
   }
 };
 
@@ -48,7 +50,7 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 // Cron job to start the server every day at 10:00 AM
-cron.schedule("0 10 * * *", async () => await initMessageEvent(), {
+cron.schedule("0 10 * * *", async () => await initMessage(), {
   timezone: "America/Sao_Paulo",
 });
 
@@ -57,9 +59,10 @@ cron.schedule(
   "0 18 * * *",
   async () => {
     const today = new Date();
-    const isLastDayOfWeek = today.getDay() === 6;
+    const isLastDayOfWeek = DateValidate.isLastDayOfWeek();
+    const isLastDayOfLastWeekOfMonth = DateValidate.isLastDayOfLastWeekOfMonth(today);
 
-    await initMessageEvent(isLastDayOfWeek);
+    await initMessage(isLastDayOfWeek, isLastDayOfLastWeekOfMonth);
   },
   {
     timezone: "America/Sao_Paulo",

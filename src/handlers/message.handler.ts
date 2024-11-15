@@ -85,7 +85,10 @@ export class MessageHandler {
       () => this.userService.getAll(),
       86400 // 24 hours
     );
-    if (!users.length) return;
+    if (!users.length) {
+      console.log("No users found, please init a task and register a user.");
+      return;
+    }
 
     const currentUser = users.find((u) => u.jid === msg.key.participant);
     if (!currentUser) return;
@@ -181,9 +184,9 @@ export class MessageHandler {
       text: compoundMessage(
         `🌟 O Desafio vai começar! 🌟
 
-⏰ Tempo para responder: *${this.convertSecondsToMinutes(this.duration)} minutos*
-📊 Dificuldade: *${question.difficulty}*
-🎓 Tema: *${this.questionInfo.theme}*
+⏰ *Tempo para responder:* ${this.convertSecondsToMinutes(this.duration)} minutos
+📊 *Dificuldade:* ${question.difficulty}
+🎓 *Tema:* ${this.questionInfo.theme}
 
 *Traduza a seguinte frase para o português:*
 
@@ -198,9 +201,9 @@ export class MessageHandler {
       text: compoundMessage(
         `🌟 O Desafio vai começar! 🌟
 
-⏰ Tempo para responder: *${this.convertSecondsToMinutes(this.duration)} minutos*
-📊 Dificuldade: *${question.difficulty}*
-🎓 Tema: *${this.questionInfo.theme}*
+⏰ *Tempo para responder:* ${this.convertSecondsToMinutes(this.duration)} minutos
+📊 *Dificuldade:* ${question.difficulty}
+🎓 *Tema:* ${this.questionInfo.theme}
 
 *${question.content}*
 
@@ -228,8 +231,12 @@ ${question.options.map((option) => `- ${option}`).join("\n")}`
     };
   };
 
-  public sendRelatory = async () => {
-    await this.scoreHandler.generateRelatory();
+  public sendWeekRelatory = async () => {
+    await this.scoreHandler.generateWeekRelatory();
+  };
+
+  public sendMonthRelatory = async () => {
+    await this.scoreHandler.generateMonthRelatory();
   };
 
   private convertSecondsToMinutes = (seconds: number) => {

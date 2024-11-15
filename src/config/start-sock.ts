@@ -12,6 +12,7 @@ import logger from "../utils/logger";
 import { Boom } from "@hapi/boom";
 import { env } from "../env";
 import { SessionService } from "../services/session.service";
+import { release } from "os";
 
 // external map to store retry counts of messages when decryption/encryption fails
 // keep this out of the socket itself, so as to prevent a message decryption/encryption loop across socket restarts
@@ -32,6 +33,7 @@ export const startSock = async (disconnectAfterCreateSession = false): Promise<W
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
+    browser: [env.BOT_NAME, env.SESSION_NAME, release()],
     msgRetryCounterCache,
     maxMsgRetryCount: 0,
     generateHighQualityLinkPreview: true,

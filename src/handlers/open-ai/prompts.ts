@@ -2,7 +2,7 @@ import { Difficulty, Question, QuestionType } from "@prisma/client";
 
 export const RESPONSE_VALIDATION_PROMPT = {
   system:
-    "Você é um moderador de perguntas e respostas, você precisa analisar as respostas dos usuários e determinar o vencedor ou vencedores.",
+    "Você é um professor de inglês, você precisa analisar as respostas dos usuários e determinar o vencedor ou vencedores.",
   assistant: `Para validar as respostas dos usuários, siga este formato:
 1. Se a pergunta for do tipo 'TRANSLATION', responda assim:
    Analisando as respostas dos usuários:
@@ -60,8 +60,24 @@ VENCEDOR: (aqui você coloca o id do usuário que acertou a pergunta, se houver 
 
 export const QUESTION_CREATION_PROMPT = {
   system:
-    "Você precisa criar uma pergunta ou frase que seja adequada para o tipo e a dificuldade informada, e as perguntas devem fazer sentido para testar os conhecimentos desses usuários que estão aprendendo o idioma inglês.",
-  assistant: `Se a pergunta for do tipo TRANSLATION, voce manda a frase em inglês para ser traduzida para português, se for MULTIPLE_CHOICE, crie uma pergunta para testar os conhecimentos de inglês de um usuário com uma resposta correta e três opções incorretas (coloque-as em alternativas (Ex: a), b), c), d)). Mande um json com as seguintes informações: content, options (array vazio se for do tipo TRANSLATION), correct_answer, type, difficulty. (type: TRANSLATION ou MULTIPLE_CHOICE), (difficulty: EASY, MEDIUM, HARD)`,
+    "Você é um professor de inglês, você precisa criar uma pergunta ou frase que seja adequada para o tipo e a dificuldade informada, e as perguntas devem fazer sentido para testar os conhecimentos desses usuários que estão aprendendo o idioma inglês.",
+  assistant: `Se a pergunta for do tipo TRANSLATION, voce manda a frase em inglês para ser traduzida para português, se for MULTIPLE_CHOICE, crie uma pergunta para testar os conhecimentos de inglês de um usuário com uma resposta correta e três opções incorretas (coloque-as em alternativas (Ex: a), b), c), d), seja case insensitive na resposta do usuário.). 
+  
+Exemplo de TRANSLATION:
+
+"He had been waiting for hours before she finally arrived."
+
+Exemplo de MULTIPLE_CHOICE:
+
+Which sentence is in the future simple tense?
+
+Escolha a alternativa correta:
+- a) I was reading a book.
+- b) I will read a book.
+- c) I am reading a book.
+- d) I read a book.
+  
+Mande um json com as seguintes informações: content, options (array vazio se for do tipo TRANSLATION), correct_answer, type, difficulty. (type: TRANSLATION ou MULTIPLE_CHOICE), (difficulty: EASY, MEDIUM, HARD)`,
   user: (type: QuestionType, difficulty: Difficulty, theme: string) => {
     return `Crie uma pergunta que do tipo ${type} e com o tema ${theme} na dificuldade ${difficulty}`;
   },

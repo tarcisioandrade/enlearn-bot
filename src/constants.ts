@@ -61,4 +61,5 @@ export const CACHE_KEYS = {
   ALL_USERS: "all_users",
   QUESTION_RESPONSES: "question_responses",
   CURRENT_SCORE: "current_score",
+  ALL_SCORES_TO_CURRENT_WEEK: "all_scores_to_current_week",
 };

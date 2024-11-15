@@ -37,15 +37,17 @@ export class OpenAIHandler implements AIHandler {
       ],
     });
     console.log("data", data.choices[0].message.content);
-    const question = data.choices[0].message.content;
-    const questionParsed: QuestionCreateInput = JSON.parse(question.replace("```json", "").replace("```", ""));
+    const content = data.choices[0].message.content;
+    const parsed = JSON.parse(content.replace("```json", "").replace("```", ""));
 
-    console.log("questionParsed", questionParsed);
-    const createdQuestion = await this.questionService.create(questionParsed);
+    const questionToCreate: QuestionCreateInput = Object.assign(parsed, { theme });
+
+    console.log("questionParsed", questionToCreate);
+    const createdQuestion = await this.questionService.create(questionToCreate);
 
     this.question_id = createdQuestion.id;
 
-    return questionParsed;
+    return questionToCreate;
   }
 
   async validateAnswer() {
@@ -91,8 +93,8 @@ export class OpenAIHandler implements AIHandler {
   }
 
   private extractWinner(validationText: string): Omit<IAnswerValidation, "losersIds"> {
-    const winnerMatch = validationText.match(/VENCEDOR: (\w{25})/);
-    const winnersIds = winnerMatch ? winnerMatch[1].split(", ") : [];
+    const winnerMatch = validationText.split("VENCEDOR: ")[1];
+    const winnersIds = winnerMatch ? winnerMatch.split(", ") : [];
 
     const responseWithoutWinner = validationText.replace(/VENCEDOR: .*/, "").trim();
 

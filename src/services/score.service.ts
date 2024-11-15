@@ -47,16 +47,16 @@ export class ScoreService {
     });
   }
 
-  async resetConsecutiveHardCorrectAnswers(id: string, user_id: string) {
+  async resetConsecutiveHardCorrectAnswers(id: string) {
     return prisma.score.update({
-      where: { id, user_id },
+      where: { id },
       data: { consecutive_hard_correct_answers: 0 },
     });
   }
 
-  async resetConsecutiveWeeklyParticipationDays(id: string, user_id: string) {
+  async resetConsecutiveWeeklyParticipationDays(id: string) {
     return prisma.score.update({
-      where: { id, user_id },
+      where: { id },
       data: { weekly_participation_days: 0 },
     });
   }

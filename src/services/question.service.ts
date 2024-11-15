@@ -1,13 +1,13 @@
 import { Difficulty, QuestionType } from "@prisma/client";
 import { prisma } from "../prisma";
 
-
 export interface QuestionCreateInput {
   content: string;
   difficulty: Difficulty;
   type: QuestionType;
   options: string[];
   correct_answer: string;
+  theme: string;
 }
 
 export class QuestionService {
@@ -36,5 +36,28 @@ export class QuestionService {
         },
       },
     });
+  };
+
+  public getMostCommonTheme = async ({ weekStart, weekEnd }: { weekStart: Date; weekEnd: Date }) => {
+    const mostCommonTheme = await prisma.question.groupBy({
+      by: ["theme"],
+      where: {
+        createdAt: {
+          gte: weekStart,
+          lt: weekEnd,
+        },
+      },
+      _count: {
+        theme: true,
+      },
+      orderBy: {
+        _count: {
+          theme: "desc",
+        },
+      },
+      take: 1,
+    });
+
+    return mostCommonTheme[0].theme;
   };
 }

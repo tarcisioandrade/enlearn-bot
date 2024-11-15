@@ -47,12 +47,15 @@ model Question {
   id             String       @id @unique @default(cuid())
   content        String       @db.Text
   options        Json
+  theme          String
   correct_answer String
   type           QuestionType
   active         Boolean      @default(true)
   difficulty     Difficulty
   createdAt      DateTime     @default(now())
   responses      Response[]
+
+  @@map("questions")
 }
 
 model Response {
@@ -68,6 +71,22 @@ model Response {
   @@index([user_id])
   @@index([question_id])
   @@map("responses")
+}
+
+model Relatory {
+  id                 String   @id @unique @default(cuid())
+  week_start         DateTime
+  week_end           DateTime
+  questions_length   Int
+  correct_answers    Int
+  incorrect_answers  Int
+  winner_id          String
+  total_score        Int
+  most_common_theme  String
+  createdAt          DateTime @default(now())
+
+  @@index([week_start, week_end])
+  @@map("relatories")
 }
 
 enum QuestionType {
