@@ -58,9 +58,8 @@ cron.schedule("0 10 * * *", async () => await initMessage(), {
 cron.schedule(
   "0 18 * * *",
   async () => {
-    const today = new Date();
     const isLastDayOfWeek = DateValidate.isLastDayOfWeek();
-    const isLastDayOfLastWeekOfMonth = DateValidate.isLastDayOfLastWeekOfMonth(today);
+    const isLastDayOfLastWeekOfMonth = DateValidate.isLastDayOfMonth();
 
     await initMessage(isLastDayOfWeek, isLastDayOfLastWeekOfMonth);
   },
