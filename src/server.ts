@@ -7,6 +7,9 @@ import cron from "node-cron";
 import { startHttpServer } from "./config/http";
 import { NodeCacheService } from "./services/node-cache.service";
 import { DateValidate } from "./utils/date-validate";
+import { ErrorTrackingService } from "./services/error-tracking.service";
+
+const errorTacking = new ErrorTrackingService();
 
 async function initMessage(generateWeekRelatory = false, generateMonthRelatory = false) {
   console.log("EVENT STARTED");
@@ -45,8 +48,14 @@ const bootstrap = async () => {
   }
 };
 
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+process.on("unhandledRejection", async (error: Error, promise) => {
+  console.error("Unhandled Rejection at:", promise, "error:", error);
+  await errorTacking.log("UNHANDLED_REJECTION", error);
+});
+
+process.on("uncaughtException", async (error: Error) => {
+  console.error("Unhandled Exception", error);
+  await errorTacking.log("UNHANDLED_EXCEPTION", error);
 });
 
 // Cron job to start the server every day at 10:00 AM
