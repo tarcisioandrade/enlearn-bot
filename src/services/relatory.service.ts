@@ -12,8 +12,6 @@ export interface CreateRelatoryInput {
 }
 
 export class RelatoryService {
-  constructor() {}
-
   public create = async (data: CreateRelatoryInput) => {
     await prisma.relatory.create({ data });
   };

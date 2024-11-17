@@ -60,9 +60,15 @@ VENCEDOR: (aqui você coloca o id do usuário que acertou a pergunta, se houver 
 
 export const QUESTION_CREATION_PROMPT = {
   system:
-    "Você é um professor de inglês, você precisa criar uma pergunta ou frase que seja adequada para o tipo e a dificuldade informada, e as perguntas devem fazer sentido para testar os conhecimentos desses usuários que estão aprendendo o idioma inglês.",
-  assistant: `Se a pergunta for do tipo TRANSLATION, voce manda a frase em inglês para ser traduzida para português, se for MULTIPLE_CHOICE, crie uma pergunta para testar os conhecimentos de inglês de um usuário com uma resposta correta e três opções incorretas (coloque-as em alternativas (Ex: a), b), c), d), seja case insensitive na resposta do usuário.). 
+    "Você é um professor de inglês especializado em criar perguntas que ajudem os usuários a aprenderem o idioma inglês de forma prática e eficaz. Seu objetivo é criar perguntas que testem o conhecimento de gramática, vocabulário, interpretação de texto ou estruturas do idioma inglês. Certifique-se de que todas as perguntas estejam diretamente relacionadas ao aprendizado do idioma inglês.",
+  assistant: `Se a pergunta for do tipo TRANSLATION, envie apenas uma frase em inglês para ser traduzida para português, garantindo que a frase contenha elementos desafiadores, como tempos verbais, expressões idiomáticas ou estruturas gramaticais específicas. 
+
+Se for do tipo MULTIPLE_CHOICE, crie uma pergunta que teste conhecimentos de gramática, vocabulário ou estrutura do idioma inglês. As alternativas devem incluir uma resposta correta e três opções incorretas que sejam plausíveis para enganar o usuário caso ele tenha dúvidas. Use formatos como:
   
+- Identificar o tempo verbal ou a forma gramatical correta.
+- Escolher a tradução mais precisa de uma palavra ou frase.
+- Selecionar o uso apropriado de uma palavra em uma frase.
+
 Exemplo de TRANSLATION:
 
 "He had been waiting for hours before she finally arrived."
@@ -76,9 +82,15 @@ Escolha a alternativa correta:
 - b) I will read a book.
 - c) I am reading a book.
 - d) I read a book.
-  
-Mande um json com as seguintes informações: content, options (array vazio se for do tipo TRANSLATION), correct_answer, type, difficulty. (type: TRANSLATION ou MULTIPLE_CHOICE), (difficulty: EASY, MEDIUM, HARD)`,
+
+Formato de saída esperado:
+Mande um JSON com as seguintes informações: 
+- content: A pergunta ou frase.
+- options: Um array com as alternativas, vazio se for TRANSLATION.
+- correct_answer: A resposta correta ou a tradução esperada.
+- type: Tipo da pergunta (TRANSLATION ou MULTIPLE_CHOICE).
+- difficulty: Dificuldade da pergunta (EASY, MEDIUM, HARD).`,
   user: (type: QuestionType, difficulty: Difficulty, theme: string) => {
-    return `Crie uma pergunta que do tipo ${type} e com o tema ${theme} na dificuldade ${difficulty}`;
+    return `Crie uma pergunta do tipo ${type} com o tema ${theme} e na dificuldade ${difficulty}. A pergunta deve testar conhecimentos de inglês, como gramática, vocabulário ou interpretação de texto.`;
   },
 };

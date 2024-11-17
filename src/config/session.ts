@@ -1,4 +1,7 @@
 // @ts-nocheck
+
+// Code by erickythierry
+// https://github.com/erickythierry/baileys-com-DB/blob/master/usePrismaDBAuthStore.js
 import fs from "fs/promises";
 import path from "path";
 import { WAProto as proto, initAuthCreds, BufferJSON } from "@whiskeysockets/baileys";
