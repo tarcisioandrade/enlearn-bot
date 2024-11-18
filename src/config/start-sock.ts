@@ -35,7 +35,7 @@ export const startSock = async (disconnectAfterCreateSession = false): Promise<W
     },
     browser: [env.BOT_NAME, env.SESSION_NAME, release()],
     msgRetryCounterCache,
-    maxMsgRetryCount: 0,
+    maxMsgRetryCount: 5,
     generateHighQualityLinkPreview: true,
     shouldIgnoreJid: (jid) => isJidBroadcast(jid),
   });
