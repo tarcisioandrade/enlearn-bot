@@ -1,20 +1,20 @@
 // @ts-nocheck
-
 // Code by erickythierry
 // https://github.com/erickythierry/baileys-com-DB/blob/master/usePrismaDBAuthStore.js
 import fs from "fs/promises";
 import path from "path";
 import { WAProto as proto, initAuthCreds, BufferJSON } from "@whiskeysockets/baileys";
 import { prisma } from "../prisma";
+import { CloudflareBucketStorage } from "../services/cloudflare-bucket-storage.service";
+import { env } from "../env";
+import { LocalStorageService } from "../services/local-storage.service";
 
 type KeyData = {
   [key: string]: any;
 };
 
-type Session = {
-  sessionID: string;
-  creds: string;
-} | null;
+const storageService =
+  process.env.NODE_ENV === "development" ? new LocalStorageService() : new CloudflareBucketStorage();
 
 const fixFileName = (file: string | undefined) => {
   if (!file) {
@@ -32,7 +32,7 @@ export async function keyExists(sessionID: string) {
     });
     return !!key;
   } catch (error) {
-    console.log(`${error}`);
+    // console.log("ERROR IN SESSION keyExists", error);
     return false;
   }
 }
@@ -49,7 +49,7 @@ export async function saveKey(sessionID: string, keyJson: string) {
       data: { creds: JSON.stringify(keyJson) },
     });
   } catch (error) {
-    console.log(`${error}`);
+    // console.log("ERROR IN SESSION saveKey", error);
     return null;
   }
 }
@@ -63,7 +63,7 @@ export async function getAuthKey(sessionID: string) {
     });
     return JSON.parse(auth?.creds);
   } catch (error) {
-    console.log(`${error}`);
+    // console.log("ERROR IN SESSION getAuthKey", error);
     return null;
   }
 }
@@ -74,29 +74,26 @@ export async function deleteAuthKey(sessionID: string) {
     if (!registro) return;
     await prisma.session.delete({ where: { sessionID: sessionID } });
   } catch (error) {
-    console.log("2", `${error}`);
+    // console.log("ERROR IN SESSION deleteAuthKey", error);
   }
 }
 
 async function fileExists(file) {
+  console.log("file", file);
   try {
-    const stat = await fs.stat(file);
-    if (stat.isFile()) return true;
+    return await storageService.exists(file);
   } catch (error) {
+    // console.log("ERROR IN SESSION fileExists", error);
     return;
   }
 }
 
 export default async function useSession(sessionID: string) {
-  const localFolder = path.join(process.cwd(), "sessions", sessionID);
-  const localFile = (key: string) => path.join(localFolder, fixFileName(key) + ".json");
-  await fs.mkdir(localFolder, { recursive: true });
-
   async function writeData(data: any, key: string) {
     const dataString = JSON.stringify(data, BufferJSON.replacer);
 
     if (key != "creds") {
-      await fs.writeFile(localFile(key), dataString);
+      await storageService.create(key, dataString);
       return;
     }
     await saveKey(sessionID, dataString);
@@ -108,15 +105,16 @@ export default async function useSession(sessionID: string) {
       let rawData: string | null = null;
 
       if (key != "creds") {
-        if (!(await fileExists(localFile(key)))) return null;
-        rawData = await fs.readFile(localFile(key), { encoding: "utf-8" });
+        if (!(await fileExists(key))) return null;
+        rawData = await storageService.get(key);
+        console.log("rawData", rawData);
       } else {
         rawData = await getAuthKey(sessionID);
       }
 
-      const parsedData = JSON.parse(rawData, BufferJSON.reviver);
-      return parsedData;
+      return rawData ? JSON.parse(rawData, BufferJSON.reviver) : null;
     } catch (error) {
+      // console.log("ERROR IN SESSION readData", error);
       return null;
     }
   }
@@ -124,11 +122,12 @@ export default async function useSession(sessionID: string) {
   async function removeData(key: string) {
     try {
       if (key != "creds") {
-        await fs.unlink(localFile(key));
+        await storageService.remove(key);
       } else {
         await deleteAuthKey(sessionID);
       }
     } catch (error) {
+      // console.log("ERROR IN SESSION removeData", error);
       return;
     }
   }

@@ -11,6 +11,10 @@ const envSchema = z.object({
   CREATE_SESSION: z.string().transform((v) => v.toLowerCase() === "true"),
   START_CREATE_TASK: z.string().transform((v) => v.toLowerCase() === "true"),
   X_API_KEY: z.string(),
+  ACCESS_KEY_ID: z.string(),
+  SECRET_KEY_ID: z.string(),
+  ENDPOINT: z.string(),
+  BUCKET_NAME: z.string(),
 });
 
 export const env = envSchema.parse(process.env);
